@@ -188,8 +188,23 @@ class Game:
                         self.set_steps_down(1)
 
                 if event.type == pygame.MOUSEBUTTONDOWN:
+                    """точка состоит из двух координат и двух цифр скорости points[0], speeds[0]
+                    коорд.|скорость
+                    точка 1
+                    x 318 1.9721851954434146
+                    y 118 0.6528092485848631
+                    точка 2
+                    x 188 0.17410999563958884
+                    y 344 1.98854464906785
+                    точка 3
+                    x 466 0.9328028895220815
+                    y 319 0.6620230434127816
+                    """
                     a_polyline.points.append(event.pos)
                     a_polyline.speeds.append((random.random() * 2, random.random() * 2))
+                    print(f'точка {len(a_polyline.points)}')
+                    print('x', a_polyline.points[-1][0], a_polyline.speeds[-1][0])
+                    print('y', a_polyline.points[-1][1], a_polyline.speeds[-1][1])
 
             gameDisplay.fill((0, 0, 0))
             hue = (hue + 1) % 360
