@@ -34,12 +34,12 @@ class Vec2d():
 
     # def __len__(self):
     #     pass
-    
+
     def int_pair(self):
         pass
 
     def __repr__(self):
-        return f"<class Vec2d with x:{x} and y:{y}>"
+        return f"<class Vec2d with x:{self.value[0]} and y:{self.value[1]}>"
 
 
 class Polyline():
@@ -50,7 +50,7 @@ class Polyline():
     def __init__(self, points=[], speeds=[]):
         self.points = points
         self.speeds = speeds
-    
+
     def reset(self):
         self.points = []
         self.speeds = []
@@ -75,13 +75,13 @@ class Polyline():
         if style == "line":
             for p_n in range(-1, len(points) - 1):
                 pygame.draw.line(gameDisplay, color,
-                                (int(points[p_n][0]), int(points[p_n][1])),
-                                (int(points[p_n + 1][0]), int(points[p_n + 1][1])), width)
+                                 (int(points[p_n][0]), int(points[p_n][1])),
+                                 (int(points[p_n + 1][0]), int(points[p_n + 1][1])), width)
 
         elif style == "points":
             for p in points:
                 pygame.draw.circle(gameDisplay, color,
-                                (int(p[0]), int(p[1])), width)
+                                   (int(p[0]), int(p[1])), width)
 
 
 class Knot(Polyline):
@@ -161,6 +161,7 @@ class Game:
         hue = self.hue
         color = self.color
         a_polyline = self.a_polyline
+        show_closed_curve = True
         while working:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -176,6 +177,8 @@ class Game:
                             print('points', type(a_polyline.points[0]), a_polyline.points)
                             print('speeds', type(a_polyline.speeds[0]), a_polyline.speeds)
                             print()
+                    if event.key == pygame.K_h:  # Show or hide closed curve
+                        show_closed_curve = not show_closed_curve
                     if event.key == pygame.K_KP_PLUS:
                         self.set_steps_up(1)
                     if event.key == pygame.K_UP:
@@ -200,8 +203,9 @@ class Game:
                     x 466 0.9328028895220815
                     y 319 0.6620230434127816
                     """
+                    speed_mod = 0.5
                     a_polyline.points.append(event.pos)
-                    a_polyline.speeds.append((random.random() * 2, random.random() * 2))
+                    a_polyline.speeds.append((random.random() * speed_mod, random.random() * speed_mod))
                     print(f'точка {len(a_polyline.points)}')
                     print('x', a_polyline.points[-1][0], a_polyline.speeds[-1][0])
                     print('y', a_polyline.points[-1][1], a_polyline.speeds[-1][1])
@@ -210,7 +214,8 @@ class Game:
             hue = (hue + 1) % 360
             color.hsla = (hue, 100, 50, 100)
             a_polyline.draw_points(a_polyline.points)
-            a_polyline.get_knot(self.steps, "line", 3, color)
+            if show_closed_curve:
+                a_polyline.get_knot(self.steps, "line", 3, color)
             # a_polyline.draw_points(get_knot(a_polyline.points, self.steps), "line", 3, color)
             if not pause:
                 # a_polyline.set_points(points, speeds)
