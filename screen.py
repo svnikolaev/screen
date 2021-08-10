@@ -17,29 +17,45 @@ class Vec2d():
     [1] Вектор определяется координатами x, y — точка конца вектора.
     Начало вектора всегда совпадает с центом координат (0, 0).
     """
-    # def __init__(self, x, y):
-    #     self.value = (x, y)
+    def __init__(
+        self, x, y
+        # , speed_x=0, speed_y=0
+    ):
+        self.x, self.y = x, y
+        # self.speed_x, self.speed_y = speed_x, speed_y
 
     def __add__(self, other):
         """возвращает сумму двух векторов"""
-        return self.value[0] + other[0], self.value[1] + other[1]
+        return Vec2d(self.x + other.x, self.y + other.y)
 
     def __sub__(self, other):
         """возвращает разность двух векторов"""
-        return self.value[0] - other[0], self.value[1] - other[1]
+        return Vec2d(self.x - other.x, self.y - other.y)
 
     def __mul__(self, k):
         """возвращает произведение вектора на число"""
-        return self.value[0] * k, self.value[1] * k
+        return Vec2d(self.x * k, self.y * k)
 
-    # def __len__(self):
-    #     pass
+    def __len__(self):
+        a = self.get_A()
+        b = self.get_B()
+        ab = ((b[0] - a[0])**2 + (b[1] - a[1])**2) ** 0.5
+        return ab
+
+    def get_A(self):
+        return self.x, self.y
+
+    def get_B(self):
+        pass
 
     def int_pair(self):
         pass
 
     def __repr__(self):
-        return f"<class Vec2d with x:{self.value[0]} and y:{self.value[1]}>"
+        return (
+            f"Vector(x: {self.x}, y: {self.y})"
+            # f", speed_x: {self.speed_x}, speed_y: {self.speed_y}>"
+        )
 
 
 class Polyline():
@@ -50,6 +66,10 @@ class Polyline():
     def __init__(self, points=[], speeds=[]):
         self.points = points
         self.speeds = speeds
+
+    def add_point(self, x, y, speed_x, speed_y):
+        self.points.append(Vec2d(x, y))
+        self.speeds.append(Vec2d(speed_x, speed_y))
 
     def reset(self):
         self.points = []
@@ -173,10 +193,12 @@ class Game:
                         a_polyline.reset()
                     if event.key == pygame.K_p:
                         pause = not pause
+                        # TODO remove after debugging
                         if a_polyline.points and a_polyline.speeds:
                             print('points', type(a_polyline.points[0]), a_polyline.points)
                             print('speeds', type(a_polyline.speeds[0]), a_polyline.speeds)
                             print()
+                        # TODO ^ ^ ^
                     if event.key == pygame.K_h:  # Show or hide closed curve
                         show_closed_curve = not show_closed_curve
                     if event.key == pygame.K_KP_PLUS:
@@ -204,12 +226,16 @@ class Game:
                     y 319 0.6620230434127816
                     """
                     speed_mod = 0.5
+                    # a_polyline.add_point(event.pos[0], event.pos[1], random.random() * speed_mod, random.random() * speed_mod)
+                    print(f'<class Vec2d with x: {event.pos[0]}, y: {event.pos[1]},'
+                          + f' speed_x: {random.random() * speed_mod}, speed_y: {random.random() * speed_mod}>')
                     a_polyline.points.append(event.pos)
                     a_polyline.speeds.append((random.random() * speed_mod, random.random() * speed_mod))
                     print(f'точка {len(a_polyline.points)}')
                     print('x', a_polyline.points[-1][0], a_polyline.speeds[-1][0])
                     print('y', a_polyline.points[-1][1], a_polyline.speeds[-1][1])
 
+            # TODO put it in next_step()
             gameDisplay.fill((0, 0, 0))
             hue = (hue + 1) % 360
             color.hsla = (hue, 100, 50, 100)
@@ -223,6 +249,10 @@ class Game:
             if show_help:
                 self.draw_help()
             pygame.display.flip()
+            # TODO ^ ^ ^
+
+    def next_step(self):
+        pass
 
     def set_steps_up(self, steps):
         self.steps += steps
