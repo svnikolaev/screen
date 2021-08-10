@@ -17,13 +17,21 @@ class Vec2d():
     [1] Вектор определяется координатами x, y — точка конца вектора.
     Начало вектора всегда совпадает с центом координат (0, 0).
     """
-    # def __init__(self, points=[], speeds=[]):
-    #     self.points = points
-    #     self.speeds = speeds
+    def __init__(self, points=[], speeds=[]):
+        self.points = points
+        self.speeds = speeds
+    
+    def reset(self):
+        self.points = []
+        self.speeds = []
 
     def add(self, x, y):
         """возвращает сумму двух векторов"""
-        return x[0] + y[0], x[1] + y[1]
+        result = x[0] + y[0], x[1] + y[1]
+        # print("x", x)
+        # print("y", y)
+        # print("result", result)
+        return result
 
     def __sub__(self):
         pass
@@ -43,13 +51,9 @@ class Polyline(Vec2d):
     скоростью, пересчёт координат точек (set_points) и отрисовку ломаной (draw_points). Арифметические действия с
     векторами должны быть реализованы с помощью операторов, а не через вызовы соответствующих методов.
     """
-    def __init__(self, points=[], speeds=[]):
-        self.points = points
-        self.speeds = speeds
-
-    def reset(self):
-        self.points = []
-        self.speeds = []
+    # def __init__(self, points=[], speeds=[]):
+    #     self.points = points
+    #     self.speeds = speeds
 
     def set_points(self):
         points, speeds = self.points, self.speeds
@@ -63,7 +67,7 @@ class Polyline(Vec2d):
         self.points, self.speeds = points, speeds
 
     # def draw_points(self):
-    #     pass
+        # pass
 
     def draw_points(self, points, style="points", width=3, color=(255, 255, 255)):
         # points = self.points
@@ -92,12 +96,12 @@ class Knot(Polyline):
     на экране справки).
     """
     def sub(self, x, y):
-        """"возвращает разность двух векторов"""
+        """возвращает разность двух векторов"""
         return x[0] - y[0], x[1] - y[1]
 
-    def add(self, x, y):
-        """возвращает сумму двух векторов"""
-        return x[0] + y[0], x[1] + y[1]
+    # def add(self, x, y):
+    #     """возвращает сумму двух векторов"""
+    #     return x[0] + y[0], x[1] + y[1]
 
     def length(self, x):
         """возвращает длину вектора"""
@@ -138,68 +142,6 @@ class Knot(Polyline):
         # return res
 
 
-# =======================================================================================
-# Функции для работы с векторами
-# =======================================================================================
-# def sub(x, y):
-#     """"возвращает разность двух векторов"""
-#     return x[0] - y[0], x[1] - y[1]
-
-
-# def add(x, y):
-#     """возвращает сумму двух векторов"""
-#     return x[0] + y[0], x[1] + y[1]
-
-
-# def length(x):
-#     """возвращает длину вектора"""
-#     return math.sqrt(x[0] * x[0] + x[1] * x[1])
-
-
-# def mul(v, k):
-#     """возвращает произведение вектора на число"""
-#     return v[0] * k, v[1] * k
-
-
-# def vec(x, y):
-#     """возвращает пару координат, определяющих вектор (координаты точки конца вектора),
-#     координаты начальной точки вектора совпадают с началом системы координат (0, 0)"""
-#     return sub(y, x)
-
-
-# =======================================================================================
-# Функции, отвечающие за расчет сглаживания ломаной
-# =======================================================================================
-# def get_point(points, alpha, deg=None):
-#     if deg is None:
-#         deg = len(points) - 1
-#     if deg == 0:
-#         return points[0]
-#     return add(mul(points[deg], alpha), mul(get_point(points, alpha, deg - 1), 1 - alpha))
-
-
-# def get_points(base_points, count):
-#     alpha = 1 / count
-#     res = []
-#     for i in range(count):
-#         res.append(get_point(base_points, i * alpha))
-#     return res
-
-
-# def get_knot(points, count):
-#     if len(points) < 3:
-#         return []
-#     res = []
-#     for i in range(-2, len(points) - 2):
-#         ptn = []
-#         ptn.append(mul(add(points[i], points[i + 1]), 0.5))
-#         ptn.append(points[i + 1])
-#         ptn.append(mul(add(points[i + 1], points[i + 2]), 0.5))
-
-#         res.extend(get_points(ptn, count))
-#     return res
-
-
 class Game:
     def __init__(self, steps=10, working=True, show_help=False, pause=True,
                  hue=0, color=pygame.Color(0)):
@@ -210,7 +152,15 @@ class Game:
         self.hue = hue
         self.color = color
         # a_polyline = Polyline(points=[], speeds=[])
-        a_polyline = Knot(points=[], speeds=[])
+        self.a_polyline = Knot(points=[], speeds=[])
+
+    def start(self):
+        working = self.working
+        show_help = self.show_help
+        pause = self.pause
+        hue = self.hue
+        color = self.color
+        a_polyline = self.a_polyline
         while working:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -223,8 +173,8 @@ class Game:
                     if event.key == pygame.K_p:
                         pause = not pause
                         if a_polyline.points and a_polyline.speeds:
-                            print(type(a_polyline.points[0]), a_polyline.points)
-                            print(type(a_polyline.speeds[0]), a_polyline.speeds)
+                            print('points', type(a_polyline.points[0]), a_polyline.points)
+                            print('speeds', type(a_polyline.speeds[0]), a_polyline.speeds)
                             print()
                     if event.key == pygame.K_KP_PLUS:
                         self.set_steps_up(1)
@@ -296,6 +246,7 @@ if __name__ == "__main__":
     pygame.display.set_caption("MyScreenSaver")
 
     client = Game()
+    client.start()
 
     pygame.display.quit()
     pygame.quit()
