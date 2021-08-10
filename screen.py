@@ -17,6 +17,36 @@ class Vec2d():
     [1] Вектор определяется координатами x, y — точка конца вектора.
     Начало вектора всегда совпадает с центом координат (0, 0).
     """
+    # def __init__(self, x, y):
+    #     self.value = (x, y)
+
+    def __add__(self, other):
+        """возвращает сумму двух векторов"""
+        return self.value[0] + other[0], self.value[1] + other[1]
+
+    def __sub__(self, other):
+        """возвращает разность двух векторов"""
+        return self.value[0] - other[0], self.value[1] - other[1]
+
+    def __mul__(self, k):
+        """возвращает произведение вектора на число"""
+        return self.value[0] * k, self.value[1] * k
+
+    # def __len__(self):
+    #     pass
+    
+    def int_pair(self):
+        pass
+
+    def __repr__(self):
+        return f"<class Vec2d with x:{x} and y:{y}>"
+
+
+class Polyline():
+    """Реализовать класс замкнутых ломаных Polyline с методами отвечающими за добавление в ломаную точки (Vec2d) c её
+    скоростью, пересчёт координат точек (set_points) и отрисовку ломаной (draw_points). Арифметические действия с
+    векторами должны быть реализованы с помощью операторов, а не через вызовы соответствующих методов.
+    """
     def __init__(self, points=[], speeds=[]):
         self.points = points
         self.speeds = speeds
@@ -24,36 +54,6 @@ class Vec2d():
     def reset(self):
         self.points = []
         self.speeds = []
-
-    def add(self, x, y):
-        """возвращает сумму двух векторов"""
-        result = x[0] + y[0], x[1] + y[1]
-        # print("x", x)
-        # print("y", y)
-        # print("result", result)
-        return result
-
-    def __sub__(self):
-        pass
-
-    def __mul__(self):
-        pass
-
-    # def __len__(self):
-    #     pass
-
-    def int_pair(self):
-        pass
-
-
-class Polyline(Vec2d):
-    """Реализовать класс замкнутых ломаных Polyline с методами отвечающими за добавление в ломаную точки (Vec2d) c её
-    скоростью, пересчёт координат точек (set_points) и отрисовку ломаной (draw_points). Арифметические действия с
-    векторами должны быть реализованы с помощью операторов, а не через вызовы соответствующих методов.
-    """
-    # def __init__(self, points=[], speeds=[]):
-    #     self.points = points
-    #     self.speeds = speeds
 
     def set_points(self):
         points, speeds = self.points, self.speeds
@@ -99,9 +99,9 @@ class Knot(Polyline):
         """возвращает разность двух векторов"""
         return x[0] - y[0], x[1] - y[1]
 
-    # def add(self, x, y):
-    #     """возвращает сумму двух векторов"""
-    #     return x[0] + y[0], x[1] + y[1]
+    def add(self, x, y):
+        """возвращает сумму двух векторов"""
+        return x[0] + y[0], x[1] + y[1]
 
     def length(self, x):
         """возвращает длину вектора"""
