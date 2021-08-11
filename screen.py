@@ -5,6 +5,8 @@ import pygame
 import random
 import math
 
+from pygame.constants import SRCALPHA
+
 SCREEN_DIM = (800, 600)
 
 
@@ -17,45 +19,53 @@ class Vec2d():
     [1] Вектор определяется координатами x, y — точка конца вектора.
     Начало вектора всегда совпадает с центом координат (0, 0).
     """
-    def __init__(
-        self, x, y
-        # , speed_x=0, speed_y=0
-    ):
+    def __init__(self, x, y, speed_x=0, speed_y=0):
         self.x, self.y = x, y
-        # self.speed_x, self.speed_y = speed_x, speed_y
+        self.speed_x, self.speed_y = speed_x, speed_y
 
     def __add__(self, other):
         """возвращает сумму двух векторов"""
-        return Vec2d(self.x + other.x, self.y + other.y)
+        return Vec2d(
+            self.x + other.x, self.y + other.y,
+            self.speed_x + other.speed_x, self.speed_y + other.speed_y
+        )
 
     def __sub__(self, other):
         """возвращает разность двух векторов"""
-        return Vec2d(self.x - other.x, self.y - other.y)
+        return Vec2d(
+            self.x - other.x, self.y - other.y,
+            self.speed_x - other.speed_x, self.speed_y - other.speed_y
+        )
 
     def __mul__(self, k):
         """возвращает произведение вектора на число"""
-        return Vec2d(self.x * k, self.y * k)
+        return Vec2d(
+            self.x * k, self.y * k,
+            self.speed_x * k, self.speed_y * k
+        )
 
     def __len__(self):
+        """Реализация весьма экзотического запроса от заказчика"""
         a = self.get_A()
         b = self.get_B()
         ab = ((b[0] - a[0])**2 + (b[1] - a[1])**2) ** 0.5
-        return ab
+        return int(ab)
 
     def get_A(self):
         return self.x, self.y
 
     def get_B(self):
-        pass
+        return self.x + self.speed_x, self.y + self.speed_y
 
     def int_pair(self):
-        pass
+        return self.get_A()
+
+    def get_speed(self):
+        return Vec2d(self.speed_x, self.speed_y)
 
     def __repr__(self):
-        return (
-            f"Vector(x: {self.x}, y: {self.y})"
-            # f", speed_x: {self.speed_x}, speed_y: {self.speed_y}>"
-        )
+        return (f"Vector(x: {self.x}, y: {self.y}"
+                f", speed_x: {self.speed_x}, speed_y: {self.speed_y})")
 
 
 class Polyline():
@@ -63,45 +73,44 @@ class Polyline():
     скоростью, пересчёт координат точек (set_points) и отрисовку ломаной (draw_points). Арифметические действия с
     векторами должны быть реализованы с помощью операторов, а не через вызовы соответствующих методов.
     """
-    def __init__(self, points=[], speeds=[]):
-        self.points = points
-        self.speeds = speeds
-
-    def add_point(self, x, y, speed_x, speed_y):
-        self.points.append(Vec2d(x, y))
-        self.speeds.append(Vec2d(speed_x, speed_y))
+    def __init__(self):
+        self.vectors = []
 
     def reset(self):
-        self.points = []
-        self.speeds = []
+        self.vectors = []
+
+    def add_point(self, x, y, speed_x, speed_y):
+        self.vectors.append(Vec2d(x, y, speed_x, speed_y))
+        # self.speeds.append(Vec2d(speed_x, speed_y))
 
     def set_points(self):
-        points, speeds = self.points, self.speeds
         """функция перерасчета координат опорных точек"""
-        for p in range(len(points)):
-            points[p] = self.add(points[p], speeds[p])
-            if points[p][0] > SCREEN_DIM[0] or points[p][0] < 0:
-                speeds[p] = (- speeds[p][0], speeds[p][1])
-            if points[p][1] > SCREEN_DIM[1] or points[p][1] < 0:
-                speeds[p] = (speeds[p][0], -speeds[p][1])
-        self.points, self.speeds = points, speeds
+        vectors = self.vectors
+        # points, speeds = self.points, self.speeds
+        for p in range(len(vectors)):
+            vectors[p] = vectors[p] + vectors[p].get_speed()
+            if vectors[p].x > SCREEN_DIM[0] or vectors[p].x < 0:
+                vectors[p].speed_x *= -1
+            if vectors[p].y > SCREEN_DIM[1] or vectors[p].y < 0:
+                vectors[p].speed_y *= -1
+        self.vectors = vectors
 
     # def draw_points(self):
         # pass
 
-    def draw_points(self, points, style="points", width=3, color=(255, 255, 255)):
-        # points = self.points
+    def draw_points(self, style="points", width=3, color=(255, 255, 255)):
         """функция отрисовки точек на экране"""
+        vectors = self.vectors
         if style == "line":
-            for p_n in range(-1, len(points) - 1):
+            for p_n in range(-1, len(vectors) - 1):
                 pygame.draw.line(gameDisplay, color,
-                                 (int(points[p_n][0]), int(points[p_n][1])),
-                                 (int(points[p_n + 1][0]), int(points[p_n + 1][1])), width)
+                                 (int(vectors[p_n].x), int(vectors[p_n].y)),
+                                 (int(vectors[p_n + 1].x), int(vectors[p_n + 1].y)), width)
 
         elif style == "points":
-            for p in points:
+            for p in vectors:
                 pygame.draw.circle(gameDisplay, color,
-                                   (int(p[0]), int(p[1])), width)
+                                   (int(p.x), int(p.y)), width)
 
 
 class Knot(Polyline):
@@ -136,7 +145,7 @@ class Knot(Polyline):
             deg = len(base_points) - 1
         if deg == 0:
             return base_points[0]
-        return self.add(self.mul(base_points[deg], alpha), self.mul(self.get_point(base_points, alpha, deg - 1), 1 - alpha))
+        return (base_points[deg] * alpha) + (self.get_point(base_points, alpha, deg - 1) * (1 - alpha) )
 
     def get_points(self, base_points, count):
         alpha = 1 / count
@@ -146,20 +155,34 @@ class Knot(Polyline):
         return res
 
     def get_knot(self, count, style="points", width=3, color=(255, 255, 255)):
-        points = self.points
-        if len(points) < 3:
+        vectors = self.vectors
+        if len(vectors) < 3:
             return []
         res = []
-        for i in range(-2, len(points) - 2):
-            ptn = []
-            ptn.append(self.mul(self.add(points[i], points[i + 1]), 0.5))
-            ptn.append(points[i + 1])
-            ptn.append(self.mul(self.add(points[i + 1], points[i + 2]), 0.5))
-
-            res.extend(self.get_points(ptn, count))
+        for i in range(-2, len(vectors) - 2):
+            base_points = []
+            base_points.append(
+                (vectors[i] + vectors[i+1]) * 0.5
+            )
+            # base_points.append(self.mul(self.add(points[i], points[i + 1]), 0.5))
+            base_points.append(vectors[i+1])
+            # base_points.append(points[i + 1])
+            base_points.append(
+                (vectors[i+1] + vectors[i+2]) * 0.5
+            )
+            # base_points.append(self.mul(self.add(points[i + 1], points[i + 2]), 0.5))
+            res.extend(self.get_points(base_points, count))
         # super().draw_points(res, style=style, width=width, color=color)
-        self.draw_points(res, style="line", width=width, color=color)
+        self.draw_lines(res, width=width, color=color)
         # return res
+    
+    def draw_lines(self, res, width=3, color=(255, 255, 255)):
+        """функция отрисовки точек на экране"""
+        vectors = res
+        for p_n in range(-1, len(vectors) - 1):
+            pygame.draw.line(gameDisplay, color,
+                                (int(vectors[p_n].x), int(vectors[p_n].y)),
+                                (int(vectors[p_n + 1].x), int(vectors[p_n + 1].y)), width)
 
 
 class Game:
@@ -172,7 +195,7 @@ class Game:
         self.hue = hue
         self.color = color
         # a_polyline = Polyline(points=[], speeds=[])
-        self.a_polyline = Knot(points=[], speeds=[])
+        self.a_polyline = Knot()
 
     def start(self):
         working = self.working
@@ -193,12 +216,6 @@ class Game:
                         a_polyline.reset()
                     if event.key == pygame.K_p:
                         pause = not pause
-                        # TODO remove after debugging
-                        if a_polyline.points and a_polyline.speeds:
-                            print('points', type(a_polyline.points[0]), a_polyline.points)
-                            print('speeds', type(a_polyline.speeds[0]), a_polyline.speeds)
-                            print()
-                        # TODO ^ ^ ^
                     if event.key == pygame.K_h:  # Show or hide closed curve
                         show_closed_curve = not show_closed_curve
                     if event.key == pygame.K_KP_PLUS:
@@ -226,25 +243,23 @@ class Game:
                     y 319 0.6620230434127816
                     """
                     speed_mod = 0.5
-                    # a_polyline.add_point(event.pos[0], event.pos[1], random.random() * speed_mod, random.random() * speed_mod)
-                    print(f'<class Vec2d with x: {event.pos[0]}, y: {event.pos[1]},'
-                          + f' speed_x: {random.random() * speed_mod}, speed_y: {random.random() * speed_mod}>')
-                    a_polyline.points.append(event.pos)
-                    a_polyline.speeds.append((random.random() * speed_mod, random.random() * speed_mod))
-                    print(f'точка {len(a_polyline.points)}')
-                    print('x', a_polyline.points[-1][0], a_polyline.speeds[-1][0])
-                    print('y', a_polyline.points[-1][1], a_polyline.speeds[-1][1])
+                    a_polyline.add_point(event.pos[0], event.pos[1], random.random() * speed_mod, random.random() * speed_mod)
+                    # print(f'<class Vec2d with x: {event.pos[0]}, y: {event.pos[1]},'
+                    #       + f' speed_x: {random.random() * speed_mod}, speed_y: {random.random() * speed_mod}>')
+                    # a_polyline.points.append(event.pos)
+                    # a_polyline.speeds.append((random.random() * speed_mod, random.random() * speed_mod))
+                    # print(f'точка {len(a_polyline.points)}')
+                    # print('x', a_polyline.points[-1][0], a_polyline.speeds[-1][0])
+                    # print('y', a_polyline.points[-1][1], a_polyline.speeds[-1][1])
 
             # TODO put it in next_step()
             gameDisplay.fill((0, 0, 0))
             hue = (hue + 1) % 360
             color.hsla = (hue, 100, 50, 100)
-            a_polyline.draw_points(a_polyline.points)
+            a_polyline.draw_points()
             if show_closed_curve:
                 a_polyline.get_knot(self.steps, "line", 3, color)
-            # a_polyline.draw_points(get_knot(a_polyline.points, self.steps), "line", 3, color)
             if not pause:
-                # a_polyline.set_points(points, speeds)
                 a_polyline.set_points()
             if show_help:
                 self.draw_help()
