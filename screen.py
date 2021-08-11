@@ -3,9 +3,6 @@
 
 import pygame
 import random
-import math
-
-from pygame.constants import SRCALPHA
 
 SCREEN_DIM = (800, 600)
 
@@ -73,11 +70,16 @@ class Polyline():
     скоростью, пересчёт координат точек (set_points) и отрисовку ломаной (draw_points). Арифметические действия с
     векторами должны быть реализованы с помощью операторов, а не через вызовы соответствующих методов.
     """
-    def __init__(self):
+    def __init__(self, gameDisplay, screen_dim=(800, 600)):
         self.vectors = []
+        self.screen_dim = screen_dim
+        self.gameDisplay = gameDisplay
 
     def reset(self):
         self.vectors = []
+
+    def delete_point(self):
+        del self.vectors[-1]
 
     def add_point(self, x, y, speed_x, speed_y):
         self.vectors.append(Vec2d(x, y, speed_x, speed_y))
@@ -86,31 +88,22 @@ class Polyline():
     def set_points(self):
         """функция перерасчета координат опорных точек"""
         vectors = self.vectors
+        screen_dim = self.screen_dim
         # points, speeds = self.points, self.speeds
         for p in range(len(vectors)):
             vectors[p] = vectors[p] + vectors[p].get_speed()
-            if vectors[p].x > SCREEN_DIM[0] or vectors[p].x < 0:
+            if vectors[p].x > screen_dim[0] or vectors[p].x < 0:
                 vectors[p].speed_x *= -1
-            if vectors[p].y > SCREEN_DIM[1] or vectors[p].y < 0:
+            if vectors[p].y > screen_dim[1] or vectors[p].y < 0:
                 vectors[p].speed_y *= -1
         self.vectors = vectors
 
-    # def draw_points(self):
-        # pass
-
-    def draw_points(self, style="points", width=3, color=(255, 255, 255)):
+    def draw_points(self, width=3, color=(255, 255, 255)):
         """функция отрисовки точек на экране"""
         vectors = self.vectors
-        if style == "line":
-            for p_n in range(-1, len(vectors) - 1):
-                pygame.draw.line(gameDisplay, color,
-                                 (int(vectors[p_n].x), int(vectors[p_n].y)),
-                                 (int(vectors[p_n + 1].x), int(vectors[p_n + 1].y)), width)
-
-        elif style == "points":
-            for p in vectors:
-                pygame.draw.circle(gameDisplay, color,
-                                   (int(p.x), int(p.y)), width)
+        for p in vectors:
+            pygame.draw.circle(self.gameDisplay, color,
+                               (int(p.x), int(p.y)), width)
 
 
 class Knot(Polyline):
@@ -124,28 +117,12 @@ class Knot(Polyline):
     как изменяется отрисовка линии при различных значениях (текущее количество точек «сглаживания» можно посмотреть
     на экране справки).
     """
-    def sub(self, x, y):
-        """возвращает разность двух векторов"""
-        return x[0] - y[0], x[1] - y[1]
-
-    def add(self, x, y):
-        """возвращает сумму двух векторов"""
-        return x[0] + y[0], x[1] + y[1]
-
-    def length(self, x):
-        """возвращает длину вектора"""
-        return math.sqrt(x[0] * x[0] + x[1] * x[1])
-
-    def mul(self, v, k):
-        """возвращает произведение вектора на число"""
-        return v[0] * k, v[1] * k
-
     def get_point(self, base_points, alpha, deg=None):
         if deg is None:
             deg = len(base_points) - 1
         if deg == 0:
             return base_points[0]
-        return (base_points[deg] * alpha) + (self.get_point(base_points, alpha, deg - 1) * (1 - alpha) )
+        return (base_points[deg] * alpha) + (self.get_point(base_points, alpha, deg - 1) * (1 - alpha))
 
     def get_points(self, base_points, count):
         alpha = 1 / count
@@ -154,7 +131,7 @@ class Knot(Polyline):
             res.append(self.get_point(base_points, i * alpha))
         return res
 
-    def get_knot(self, count, style="points", width=3, color=(255, 255, 255)):
+    def get_knot(self, count, width=3, color=(255, 255, 255)):
         vectors = self.vectors
         if len(vectors) < 3:
             return []
@@ -164,38 +141,35 @@ class Knot(Polyline):
             base_points.append(
                 (vectors[i] + vectors[i+1]) * 0.5
             )
-            # base_points.append(self.mul(self.add(points[i], points[i + 1]), 0.5))
             base_points.append(vectors[i+1])
-            # base_points.append(points[i + 1])
             base_points.append(
                 (vectors[i+1] + vectors[i+2]) * 0.5
             )
-            # base_points.append(self.mul(self.add(points[i + 1], points[i + 2]), 0.5))
             res.extend(self.get_points(base_points, count))
-        # super().draw_points(res, style=style, width=width, color=color)
-        self.draw_lines(res, width=width, color=color)
-        # return res
-    
-    def draw_lines(self, res, width=3, color=(255, 255, 255)):
-        """функция отрисовки точек на экране"""
+        self.draw_curve(res, width=width, color=color)
+
+    def draw_curve(self, res, width=3, color=(255, 255, 255)):
+        """функция отрисовки кривой на экране"""
         vectors = res
         for p_n in range(-1, len(vectors) - 1):
-            pygame.draw.line(gameDisplay, color,
-                                (int(vectors[p_n].x), int(vectors[p_n].y)),
-                                (int(vectors[p_n + 1].x), int(vectors[p_n + 1].y)), width)
+            pygame.draw.line(self.gameDisplay, color,
+                             (int(vectors[p_n].x), int(vectors[p_n].y)),
+                             (int(vectors[p_n + 1].x), int(vectors[p_n + 1].y)), width)
 
 
 class Game:
     def __init__(self, steps=10, working=True, show_help=False, pause=True,
-                 hue=0, color=pygame.Color(0)):
+                 hue=0, color=pygame.Color(0), caption="MyScreenSaver", screen_dim=(800, 600)):
         self.steps = steps
         self.working = working
         self.show_help = show_help
         self.pause = pause
         self.hue = hue
         self.color = color
-        # a_polyline = Polyline(points=[], speeds=[])
-        self.a_polyline = Knot()
+        self.gameDisplay = pygame.display.set_mode(screen_dim)
+        self.a_polyline = Knot(self.gameDisplay, screen_dim)
+        self.caption = caption
+        self.screen_dim = screen_dim
 
     def start(self):
         working = self.working
@@ -204,7 +178,11 @@ class Game:
         hue = self.hue
         color = self.color
         a_polyline = self.a_polyline
+        screen_dim = self.screen_dim
+        caption = self.caption
         show_closed_curve = True
+        pygame.init()
+        pygame.display.set_caption(caption)
         while working:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -230,44 +208,40 @@ class Game:
                         self.set_steps_down(1)
 
                 if event.type == pygame.MOUSEBUTTONDOWN:
-                    """точка состоит из двух координат и двух цифр скорости points[0], speeds[0]
-                    коорд.|скорость
-                    точка 1
-                    x 318 1.9721851954434146
-                    y 118 0.6528092485848631
-                    точка 2
-                    x 188 0.17410999563958884
-                    y 344 1.98854464906785
-                    точка 3
-                    x 466 0.9328028895220815
-                    y 319 0.6620230434127816
-                    """
                     speed_mod = 0.5
-                    a_polyline.add_point(event.pos[0], event.pos[1], random.random() * speed_mod, random.random() * speed_mod)
-                    # print(f'<class Vec2d with x: {event.pos[0]}, y: {event.pos[1]},'
-                    #       + f' speed_x: {random.random() * speed_mod}, speed_y: {random.random() * speed_mod}>')
-                    # a_polyline.points.append(event.pos)
-                    # a_polyline.speeds.append((random.random() * speed_mod, random.random() * speed_mod))
-                    # print(f'точка {len(a_polyline.points)}')
-                    # print('x', a_polyline.points[-1][0], a_polyline.speeds[-1][0])
-                    # print('y', a_polyline.points[-1][1], a_polyline.speeds[-1][1])
+                    a_polyline.add_point(
+                        event.pos[0], event.pos[1], random.random() * speed_mod, random.random() * speed_mod
+                    )
 
             # TODO put it in next_step()
-            gameDisplay.fill((0, 0, 0))
+            self.gameDisplay.fill((0, 0, 0))
             hue = (hue + 1) % 360
             color.hsla = (hue, 100, 50, 100)
             a_polyline.draw_points()
             if show_closed_curve:
-                a_polyline.get_knot(self.steps, "line", 3, color)
+                a_polyline.get_knot(self.steps, 3, color)
             if not pause:
                 a_polyline.set_points()
             if show_help:
                 self.draw_help()
             pygame.display.flip()
             # TODO ^ ^ ^
+        pygame.display.quit()
+        pygame.quit()
 
     def next_step(self):
         pass
+        # self.gameDisplay.fill((0, 0, 0))
+        # hue = (hue + 1) % 360
+        # color.hsla = (hue, 100, 50, 100)
+        # a_polyline.draw_points()
+        # if show_closed_curve:
+        #     a_polyline.get_knot(self.steps, 3, color)
+        # if not pause:
+        #     a_polyline.set_points()
+        # if show_help:
+        #     self.draw_help()
+        # pygame.display.flip()
 
     def set_steps_up(self, steps):
         self.steps += steps
@@ -281,7 +255,7 @@ class Game:
     def draw_help(self):
         """функция отрисовки экрана справки программы"""
         steps = self.get_steps()
-        gameDisplay.fill((50, 50, 50))
+        self.gameDisplay.fill((50, 50, 50))
         font1 = pygame.font.SysFont("courier", 24)
         font2 = pygame.font.SysFont("serif", 24)
         data = []
@@ -293,12 +267,12 @@ class Game:
         data.append(["", ""])
         data.append([str(steps), "Current points"])
 
-        pygame.draw.lines(gameDisplay, (255, 50, 50, 255), True, [
+        pygame.draw.lines(self.gameDisplay, (255, 50, 50, 255), True, [
             (0, 0), (800, 0), (800, 600), (0, 600)], 5)
         for i, text in enumerate(data):
-            gameDisplay.blit(font1.render(
+            self.gameDisplay.blit(font1.render(
                 text[0], True, (128, 128, 255)), (100, 100 + 30 * i))
-            gameDisplay.blit(font2.render(
+            self.gameDisplay.blit(font2.render(
                 text[1], True, (128, 128, 255)), (200, 100 + 30 * i))
 
 
@@ -306,13 +280,6 @@ class Game:
 # Основная программа
 # =======================================================================================
 if __name__ == "__main__":
-    pygame.init()
-    gameDisplay = pygame.display.set_mode(SCREEN_DIM)
-    pygame.display.set_caption("MyScreenSaver")
-
-    client = Game()
+    client = Game(caption="MyScreenSaver", screen_dim=SCREEN_DIM)
     client.start()
-
-    pygame.display.quit()
-    pygame.quit()
     exit(0)
